@@ -1,5 +1,6 @@
 require 'jdbc/dss'
 require 'sequel'
+require 'logger'
 
 require_relative 'sql_generator'
 
