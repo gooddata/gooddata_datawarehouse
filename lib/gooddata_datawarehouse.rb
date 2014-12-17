@@ -1,0 +1,2 @@
+require_relative "gooddata_datawarehouse/version"
+require_relative "gooddata_datawarehouse/datawarehouse"
