@@ -1,6 +1,6 @@
 module GoodData
   class SQLGenerator
-    DEFAULT_TYPE = 'VARCHAR(1023)'
+    DEFAULT_TYPE = 'varchar(1023)'
     class << self
 
       def rename_table(old_name, new_name)
@@ -14,7 +14,7 @@ module GoodData
       def create_table(table_name, columns, opts={})
         not_exists = opts[:skip_if_exists] ? 'IF NOT EXISTS' : ''
         columns_string = columns.map { |c|
-          c.is_a?(String) ? "#{c} #{DEFAULT_TYPE}" : "#{c[:name]} #{c[:type] || DEFAULT_TYPE}"
+          c.is_a?(String) ? "#{c} #{DEFAULT_TYPE}" : "#{c[:column_name]} #{c[:data_type] || DEFAULT_TYPE}"
         }.join(', ')
         "CREATE TABLE #{not_exists} #{table_name} (#{columns_string})"
       end
@@ -30,6 +30,19 @@ module GoodData
         FROM LOCAL '#{csv}' WITH PARSER GdcCsvParser()
         ESCAPE AS '"'
          SKIP 1}
+      end
+
+      def get_table_count(table_name)
+        "SELECT COUNT(*) FROM tables WHERE table_name = '#{table_name}'"
+      end
+
+      def get_columns(table_name)
+        "SELECT column_name, data_type FROM columns WHERE table_name = '#{table_name}'"
+      end
+
+      def select_all(table_name, options={})
+        limit = options[:limit] ? "LIMIT #{options[:limit]}" : ''
+        "SELECT * FROM #{table_name} #{limit}"
       end
     end
   end

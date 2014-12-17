@@ -1,6 +1,7 @@
 require 'jdbc/dss'
 require 'sequel'
 require 'logger'
+require 'csv'
 
 require_relative 'sql_generator'
 
@@ -15,7 +16,27 @@ module GoodData
       Java.com.gooddata.dss.jdbc.driver.DssDriver
     end
 
-    # TODO export_table https://gist.github.com/cvengros/32ad1a518b3956617522
+    def export_table(table_name, csv_path)
+      CSV.open(csv_path, 'wb', :force_quotes => true) do |csv|
+        # get the names of cols
+        cols = get_columns(table_name).map {|c| c[:column_name]}
+        col_names =
+
+        # write header
+        csv << cols
+
+        # get the keys for columns, stupid sequel
+        col_keys = nil
+        rows = execute_select(GoodData::SQLGenerator.select_all(table_name, limit: 1))
+
+        col_keys = rows[0].keys
+
+        execute_select(GoodData::SQLGenerator.select_all(table_name)) do |row|
+          # go through the table write to csv
+          csv << row.values_at(*col_keys)
+        end
+      end
+    end
 
     def rename_table(old_name, new_name)
       execute(GoodData::SQLGenerator.rename_table(old_name, new_name))
@@ -27,7 +48,7 @@ module GoodData
 
     def csv_to_new_table(table_name, csv_path, opts={})
       cols = create_table_from_csv_header(table_name, csv_path, opts)
-      load_data_from_csv(table_name, cols, opts={})
+      load_data_from_csv(table_name, csv_path, columns: cols)
     end
 
     def load_data_from_csv(table_name, csv_path, opts={})
@@ -48,6 +69,15 @@ module GoodData
       execute(GoodData::SQLGenerator.create_table(name, columns, options))
     end
 
+    def table_exists?(name)
+      count = execute_select(GoodData::SQLGenerator.get_table_count(name), :count => true)
+      count > 0
+    end
+
+    def get_columns(table_name)
+      res = execute_select(GoodData::SQLGenerator.get_columns(table_name))
+    end
+
     # execute sql, return nothing
     def execute(sql_strings)
       if ! sql_strings.kind_of?(Array)
@@ -62,7 +92,10 @@ module GoodData
     end
 
     # executes sql (select), for each row, passes execution to block
-    def execute_select(sql, fetch_handler=nil, count=false)
+    def execute_select(sql, options={})
+      fetch_handler = options[:fetch_handler]
+      count = options[:count]
+
       connect do |connection|
         # do the query
         f = connection.fetch(sql)
@@ -77,10 +110,16 @@ module GoodData
           return f.first[:count]
         end
 
-        # go throug the rows returned and call the block
-        return f.each do |row|
-          yield(row)
+        # if block given yield to process line by line
+        if block_given?
+          # go through the rows returned and call the block
+          return f.each do |row|
+            yield(row)
+          end
         end
+
+        # return it all at once
+        f.map{|h| h}
       end
     end
 

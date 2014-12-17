@@ -1,6 +1,6 @@
 # GooddataDatawarehouse
 
-TODO: Write a gem description
+A little library to help you work with GoodData's Datawarehouse
 
 ## Installation
 
@@ -20,7 +20,28 @@ Or install it yourself as:
 
 ## Usage
 
-TODO: Write usage instructions here
+```ruby
+require 'gooddata_datawarehouse'
+
+# connect
+dwh = GoodData::Datawarehouse.new('you@gooddata.com', 'yourpass', 'your ADS instance id'
+
+# import a csv
+dwh.csv_to_new_table('my_table', 'path/to/my.csv')
+
+dwh.table_exists?('my_table') # true
+dwh.get_columns('my_table') # [{column_name: 'col1', data_type: 'varchar(88)'}, {column_name: 'col2', data_type: 'int'}]
+
+# rename a table
+dwh.rename_table('my_table', 'my_new_table')
+
+# export to csv
+dwh.export_table('my_new_table', 'path/to/my_new.csv')
+
+# drop table
+dwh.drop_table('my_new_table')
+```
+
 
 ## Contributing
 
