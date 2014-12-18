@@ -4,15 +4,25 @@ A little library to help you work with GoodData's Datawarehouse
 
 ## Installation
 
+You need to run **jRuby** to use this gem, the gem won't work on any other Ruby platform than jRuby. That's because there's a dependency on the JDBC driver
+
+If you're using [rvm](https://rvm.io/rvm/install) (recommended), run:
+    
+    $ rvm use jruby
+
+If you don't have jruby yet, run
+
+    $ rvm install jruby
+
 Add this line to your application's Gemfile:
 
 ```ruby
 gem 'gooddata_datawarehouse'
 ```
 
-And then execute:
+And then install:
 
-    $ bundle
+    $ bundle install
 
 Or install it yourself as:
 
@@ -39,7 +49,6 @@ dwh.execute('ALTER TABLE my_table ADD COLUMN col3 INTEGER')
 dwh.execute_select('SELECT * FROM my_table ORDER BY col1') do |row| 
   puts row[:col1] 
 end
-
 
 # rename a table
 dwh.rename_table('my_table', 'my_new_table')
