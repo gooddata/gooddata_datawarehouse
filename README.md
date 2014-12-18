@@ -32,6 +32,15 @@ dwh.csv_to_new_table('my_table', 'path/to/my.csv')
 dwh.table_exists?('my_table') # true
 dwh.get_columns('my_table') # [{column_name: 'col1', data_type: 'varchar(88)'}, {column_name: 'col2', data_type: 'int'}]
 
+# run an aribrary sql
+dwh.execute('ALTER TABLE my_table ADD COLUMN col3 INTEGER')
+
+# run a select and process results 
+dwh.execute_select('SELECT * FROM my_table ORDER BY col1') do |row| 
+  puts row[:col1] 
+end
+
+
 # rename a table
 dwh.rename_table('my_table', 'my_new_table')
 
