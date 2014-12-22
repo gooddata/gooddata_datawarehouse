@@ -8,7 +8,10 @@ except:
 - gh-pages
 - next_doc_release
 env:
-- secure: "hPFBMIHa0J+Dc1gBPqipkr+4RLFQGQWBTHZbPRoAU/r9n8NkH36KvLjBNINgvJ/7eFNR/BLBFZ5tylp1zTp2E3Ysvv3snGN/qIHmAAa1O9YINbAugSUNka00kClH4s0vWF1r+e4uKTclb2TFhVBSRLjIAVEXibAQuXd7nMCm+78=" secure: "Rqt5jW8L5c+3sVIZcfDRkXjlpy6P4g3F7JGliBcOP1whKOiJW15l5yiANoLolTBxps2UneewxcxViI4oa+ZIUZr6xms0on2I9OTyK69wZ62fVrwwrTyI+FwPfF0ilvieuuU2TF9i3bEYB9XyZHQMgqmnX4DtNFvX6hUnVPQsSn8=" secure: "O1KhJhV69JooBAXjvZmLAbpBWTmwk0wlgQP3vlYshHC4HnGYh4su80dESn5NmTry8QuxYZNDAh211pkVx0/r73y6/NJfDd5eO1KKR+fR0HuLaRkhEW5PjfvZxkwDSa2Dwi1WZDOtd/3+3l26RGl0tg6A08fAUXgM2W7yKkB43L4="
+  global:
+    - secure: "hPFBMIHa0J+Dc1gBPqipkr+4RLFQGQWBTHZbPRoAU/r9n8NkH36KvLjBNINgvJ/7eFNR/BLBFZ5tylp1zTp2E3Ysvv3snGN/qIHmAAa1O9YINbAugSUNka00kClH4s0vWF1r+e4uKTclb2TFhVBSRLjIAVEXibAQuXd7nMCm+78="
+    - secure: "Rqt5jW8L5c+3sVIZcfDRkXjlpy6P4g3F7JGliBcOP1whKOiJW15l5yiANoLolTBxps2UneewxcxViI4oa+ZIUZr6xms0on2I9OTyK69wZ62fVrwwrTyI+FwPfF0ilvieuuU2TF9i3bEYB9XyZHQMgqmnX4DtNFvX6hUnVPQsSn8="
+    - secure: "O1KhJhV69JooBAXjvZmLAbpBWTmwk0wlgQP3vlYshHC4HnGYh4su80dESn5NmTry8QuxYZNDAh211pkVx0/r73y6/NJfDd5eO1KKR+fR0HuLaRkhEW5PjfvZxkwDSa2Dwi1WZDOtd/3+3l26RGl0tg6A08fAUXgM2W7yKkB43L4="
 rvm:
 - jruby-19mode
 before_install:
