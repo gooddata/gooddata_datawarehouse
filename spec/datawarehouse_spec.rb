@@ -11,14 +11,14 @@ describe GoodData::Datawarehouse do
   end
 
   after(:each) do
-    @created_tables.each{|t| @dwh.drop_table(t)} if @created_tables
+    @created_tables ||= [@random_table_name]
+    @created_tables.each{|t| @dwh.drop_table(t) if t} if @created_tables
   end
 
   describe '#create_table' do
     it 'creates a table with default type' do
       cols = ['col1', 'col2', 'col3']
       @dwh.create_table(@random_table_name, cols)
-      @created_tables = [@random_table_name]
 
       # table exists
       expect(@dwh.table_exists?(@random_table_name)).to eq true
@@ -31,7 +31,6 @@ describe GoodData::Datawarehouse do
       cols = ['col1', 'col2', 'col3']
       cols2 = ['col1', 'col2']
       @dwh.create_table(@random_table_name, cols)
-      @created_tables = [@random_table_name]
 
       expect(@dwh.table_exists?(@random_table_name)).to eq true
 
@@ -58,7 +57,6 @@ describe GoodData::Datawarehouse do
         }
       ]
       @dwh.create_table(@random_table_name, cols)
-      @created_tables = [@random_table_name]
 
       # table exists
       expect(@dwh.table_exists?(@random_table_name)).to eq true
@@ -78,6 +76,8 @@ describe GoodData::Datawarehouse do
       # it shouldn't exist after being dropped
       @dwh.drop_table(@random_table_name)
       expect(@dwh.table_exists?(@random_table_name)).to eq false
+
+      @random_table_name = nil
     end
   end
 
@@ -109,7 +109,6 @@ describe GoodData::Datawarehouse do
       # cols are the same as in the csv
       expected_cols = File.open(path, &:gets).strip.split(',')
       expect(Set.new(@dwh.get_columns(@random_table_name))).to eq Set.new(expected_cols.map {|c| {:column_name => c, :data_type => GoodData::SQLGenerator::DEFAULT_TYPE}})
-      @created_tables = [@random_table_name]
     end
   end
 
@@ -130,7 +129,6 @@ describe GoodData::Datawarehouse do
       exported = Set.new(CSV.read(f))
 
       expect(exported).to eq imported
-      @created_tables = [@random_table_name]
     end
   end
 
@@ -147,6 +145,28 @@ describe GoodData::Datawarehouse do
 
       # load the data there
       @dwh.load_data_from_csv(@random_table_name, path)
+
+      # export it
+      f = Tempfile.new('bike.csv')
+      @dwh.export_table(@random_table_name, f)
+
+      # should be the same except for order of the lines
+      imported = Set.new(CSV.read(path))
+      exported = Set.new(CSV.read(f))
+
+      expect(exported).to eq imported
+    end
+
+    it 'fails for a wrong csv' do
+      path_wrong = 'spec/data/bike-wrong.csv'
+
+      # create the table
+      @dwh.create_table_from_csv_header(@random_table_name, path_wrong)
+      expect(@dwh.table_exists?(@random_table_name)).to eq true
+
+      # load the data there - expect fail
+      expect{@dwh.load_data_from_csv(@random_table_name, path_wrong)}.to raise_error(ArgumentError)
+
     end
   end
 end

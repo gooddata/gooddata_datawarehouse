@@ -2,6 +2,15 @@
 
 A little library to help you work with GoodData's Datawarehouse
 
+## Status
+
+[![Gem Version](https://badge.fury.io/rb/gooddata_datawarehouse.png)](http://badge.fury.io/rb/gooddata_datawarehouse)
+[![Downloads](http://img.shields.io/gem/dt/gooddata_datawarehouse.svg)](http://rubygems.org/gems/gooddata_datawarehouse)
+[![Dependency Status](https://gemnasium.com/cvengros/gooddata_datawarehouse.png)](https://gemnasium.com/cvengros/gooddata_datawarehouse)
+[![Code Climate](https://codeclimate.com/github/cvengros/gooddata_datawarehouse.png)](https://codeclimate.com/github/cvengros/gooddata_datawarehouse)
+[![Build Status](https://travis-ci.org/cvengros/gooddata_datawarehouse.png)](https://travis-ci.org/cvengros/gooddata_datawarehouse)
+[![Coverage Status](https://coveralls.io/repos/cvengros/gooddata_datawarehouse/badge.png)](https://coveralls.io/r/cvengros/gooddata_datawarehouse)
+
 ## Installation
 
 You need to run **jRuby** to use this gem, the gem won't work on any other Ruby platform than jRuby. That's because there's a dependency on the JDBC driver

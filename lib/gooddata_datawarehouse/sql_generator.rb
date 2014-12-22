@@ -19,17 +19,19 @@ module GoodData
         "CREATE TABLE #{not_exists} #{table_name} (#{columns_string})"
       end
 
-      def load_data(table, csv, columns)
+      def load_data(table, csv, columns, opts={})
         col_list = columns.join(', ')
+        skip = opts[:no_header] ? '' : 'SKIP 1'
+        parser = opts[:parser] || 'GdcCsvParser()'
+        escape_as = opts[:escape_as] || '"'
 
-        # TODO: exceptions, rejections
-        #       EXCEPTIONS '#{except_filename(filename)}'
-        # REJECTED DATA '#{reject_filename(filename)}' }
+        exc_rej = opts[:ignore_parse_errors] ? '' : "EXCEPTIONS '#{File.absolute_path(opts[:exceptions_file])}' REJECTED DATA '#{File.absolute_path(opts[:rejections_file])}'"
 
         %Q{COPY #{table} (#{col_list})
-        FROM LOCAL '#{csv}' WITH PARSER GdcCsvParser()
-        ESCAPE AS '"'
-         SKIP 1}
+        FROM LOCAL '#{File.absolute_path(csv)}' WITH PARSER #{parser}
+        ESCAPE AS '#{escape_as}'
+        #{skip}
+        #{exc_rej}}
       end
 
       def get_table_count(table_name)
@@ -40,8 +42,8 @@ module GoodData
         "SELECT column_name, data_type FROM columns WHERE table_name = '#{table_name}'"
       end
 
-      def select_all(table_name, options={})
-        limit = options[:limit] ? "LIMIT #{options[:limit]}" : ''
+      def select_all(table_name, opts={})
+        limit = opts[:limit] ? "LIMIT #{opts[:limit]}" : ''
         "SELECT * FROM #{table_name} #{limit}"
       end
     end

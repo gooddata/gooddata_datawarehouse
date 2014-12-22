@@ -7,11 +7,15 @@ require_relative 'sql_generator'
 
 module GoodData
   class Datawarehouse
-    def initialize(username, password, instance_id, options={})
+    def initialize(username, password, instance_id, opts={})
       @logger = Logger.new(STDOUT)
       @username = username
       @password = password
       @jdbc_url = "jdbc:dss://secure.gooddata.com/gdc/dss/instances/#{instance_id}"
+      if @username.nil? || @password.nil? || instance_id.nil?
+        fail ArgumentError, "username, password and/or instance_id are nil. All of them are mandatory."
+      end
+
       Jdbc::DSS.load_driver
       Java.com.gooddata.dss.jdbc.driver.DssDriver
     end
@@ -20,7 +24,6 @@ module GoodData
       CSV.open(csv_path, 'wb', :force_quotes => true) do |csv|
         # get the names of cols
         cols = get_columns(table_name).map {|c| c[:column_name]}
-        col_names =
 
         # write header
         csv << cols
@@ -53,7 +56,22 @@ module GoodData
 
     def load_data_from_csv(table_name, csv_path, opts={})
       columns = opts[:columns] || get_csv_headers(csv_path)
-      execute(GoodData::SQLGenerator.load_data(table_name, csv_path, columns))
+
+      # temporary files to get the excepted records
+      exc = opts[:exceptions_file] ||= Tempfile.new('exceptions')
+      rej = opts[:rejections_file] ||= Tempfile.new('rejections')
+      exc = File.new(exc) unless exc.is_a?(File)
+      rej = File.new(rej) unless exc.is_a?(File)
+
+      # execute the load
+      execute(GoodData::SQLGenerator.load_data(table_name, csv_path, columns, opts))
+
+      exc.close
+      rej.close
+
+      if exc.size > 0 || rej.size > 0
+        fail ArgumentError, "Some lines in the CSV didn't go through. Exceptions: #{IO.read(exc)}\nRejected records: #{IO.read(rej)}"
+      end
     end
 
     # returns a list of columns created
@@ -65,8 +83,8 @@ module GoodData
       columns
     end
 
-    def create_table(name, columns, options={})
-      execute(GoodData::SQLGenerator.create_table(name, columns, options))
+    def create_table(name, columns, opts={})
+      execute(GoodData::SQLGenerator.create_table(name, columns, opts))
     end
 
     def table_exists?(name)
@@ -92,9 +110,9 @@ module GoodData
     end
 
     # executes sql (select), for each row, passes execution to block
-    def execute_select(sql, options={})
-      fetch_handler = options[:fetch_handler]
-      count = options[:count]
+    def execute_select(sql, opts={})
+      fetch_handler = opts[:fetch_handler]
+      count = opts[:count]
 
       connect do |connection|
         # do the query
