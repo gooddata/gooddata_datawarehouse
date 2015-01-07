@@ -1,4 +1,7 @@
 require 'gooddata_datawarehouse'
+require 'coveralls'
+
+Coveralls.wear_merged!
 
 RSpec.configure do |c|
   c.filter_run :focus => true

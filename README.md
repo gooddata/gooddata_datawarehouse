@@ -43,7 +43,7 @@ Or install it yourself as:
 require 'gooddata_datawarehouse'
 
 # connect
-dwh = GoodData::Datawarehouse.new('you@gooddata.com', 'yourpass', 'your ADS instance id'
+dwh = GoodData::Datawarehouse.new('you@gooddata.com', 'yourpass', 'your ADS instance id')
 
 # import a csv
 dwh.csv_to_new_table('my_table', 'path/to/my.csv')
