@@ -2,6 +2,7 @@ require 'jdbc/dss'
 require 'sequel'
 require 'logger'
 require 'csv'
+require 'tempfile'
 
 require_relative 'sql_generator'
 
