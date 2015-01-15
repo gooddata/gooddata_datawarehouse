@@ -2,6 +2,9 @@ require 'tempfile'
 require 'gooddata_datawarehouse/datawarehouse'
 require_relative 'spec_helper'
 
+CSV_PATH = 'spec/data/bike.csv'
+WRONG_CSV_PATH = 'spec/data/bike-wrong.csv'
+
 describe GoodData::Datawarehouse do
   before(:each) do
     @dwh = SpecHelper::create_default_connection
@@ -100,22 +103,80 @@ describe GoodData::Datawarehouse do
 
   describe '#csv_to_new_table' do
     it 'creates a new table from csv' do
-      path = 'spec/data/bike.csv'
-      @dwh.csv_to_new_table(@random_table_name, path)
+      @dwh.csv_to_new_table(@random_table_name, CSV_PATH)
 
       # table exists
       expect(@dwh.table_exists?(@random_table_name)).to eq true
 
       # cols are the same as in the csv
-      expected_cols = File.open(path, &:gets).strip.split(',')
+      expected_cols = File.open(CSV_PATH, &:gets).strip.split(',')
+      expect(Set.new(@dwh.get_columns(@random_table_name))).to eq Set.new(expected_cols.map {|c| {:column_name => c, :data_type => GoodData::SQLGenerator::DEFAULT_TYPE}})
+    end
+
+    it 'writes exceptions and rejections to files at given path, passed strings' do
+      rej = Tempfile.new('rejections.csv')
+      exc = Tempfile.new('exceptions.csv')
+
+      @dwh.csv_to_new_table(@random_table_name, CSV_PATH, :exceptions_file => exc.path, :rejections_file => rej.path)
+
+      expect(File.size(rej)).to eq 0
+      expect(File.size(exc)).to eq 0
+    end
+
+    it 'writes exceptions and rejections to files at given path, passed files' do
+      rej = Tempfile.new('rejections.csv')
+      exc = Tempfile.new('exceptions.csv')
+
+      @dwh.csv_to_new_table(@random_table_name, CSV_PATH, :exceptions_file => exc, :rejections_file => rej)
+
+      expect(File.size(rej)).to eq 0
+      expect(File.size(exc)).to eq 0
+    end
+
+    it "writes exceptions and rejections to files at given absolute path, when it's wrong there's something" do
+      rej = Tempfile.new('rejections.csv')
+      exc = Tempfile.new('exceptions.csv')
+
+      @dwh.csv_to_new_table(@random_table_name, WRONG_CSV_PATH, :exceptions_file => exc.path, :rejections_file => rej.path, :ignore_parse_errors => true)
+
+      expect(File.size(rej)).to be > 0
+      expect(File.size(exc)).to be > 0
+    end
+
+    it "writes exceptions and rejections to files at given relative path, when it's wrong there's something" do
+      rej = Tempfile.new('rejections.csv')
+      exc = Tempfile.new('exceptions.csv')
+
+      if File.dirname(rej) != File.dirname(exc)
+        raise "two directories for tempfiles!"
+      end
+
+      csv_path = File.expand_path(WRONG_CSV_PATH)
+
+      Dir.chdir(File.dirname(rej)) do
+        @dwh.csv_to_new_table(@random_table_name, csv_path, :exceptions_file => File.basename(exc), :rejections_file => File.basename(rej), :ignore_parse_errors => true)
+      end
+
+
+      expect(File.size(rej)).to be > 0
+      expect(File.size(exc)).to be > 0
+    end
+
+    it "does something when ignoring errors and not passing files" do
+      @dwh.csv_to_new_table(@random_table_name, CSV_PATH, :ignore_parse_errors => true)
+
+      # table exists
+      expect(@dwh.table_exists?(@random_table_name)).to eq true
+
+      # cols are the same as in the csv
+      expected_cols = File.open(CSV_PATH, &:gets).strip.split(',')
       expect(Set.new(@dwh.get_columns(@random_table_name))).to eq Set.new(expected_cols.map {|c| {:column_name => c, :data_type => GoodData::SQLGenerator::DEFAULT_TYPE}})
     end
   end
 
   describe '#export_table' do
     it 'exports a created table' do
-      path = 'spec/data/bike.csv'
-      @dwh.csv_to_new_table(@random_table_name, path)
+      @dwh.csv_to_new_table(@random_table_name, CSV_PATH)
 
       # table exists
       expect(@dwh.table_exists?(@random_table_name)).to eq true
@@ -125,7 +186,7 @@ describe GoodData::Datawarehouse do
       @dwh.export_table(@random_table_name, f)
 
       # should be the same except for order of the lines
-      imported = Set.new(CSV.read(path))
+      imported = Set.new(CSV.read(CSV_PATH))
       exported = Set.new(CSV.read(f))
 
       expect(exported).to eq imported
@@ -134,39 +195,42 @@ describe GoodData::Datawarehouse do
 
   describe '#load_data_from_csv' do
     it 'loads data from csv to existing table' do
-      path = 'spec/data/bike.csv'
-
       # create the table
-      @dwh.create_table_from_csv_header(@random_table_name, path)
+      @dwh.create_table_from_csv_header(@random_table_name, CSV_PATH)
       expect(@dwh.table_exists?(@random_table_name)).to eq true
 
-      expected_cols = File.open(path, &:gets).strip.split(',')
+      expected_cols = File.open(CSV_PATH, &:gets).strip.split(',')
       expect(Set.new(@dwh.get_columns(@random_table_name))).to eq Set.new(expected_cols.map {|c| {:column_name => c, :data_type => GoodData::SQLGenerator::DEFAULT_TYPE}})
 
       # load the data there
-      @dwh.load_data_from_csv(@random_table_name, path)
+      @dwh.load_data_from_csv(@random_table_name, CSV_PATH)
 
       # export it
       f = Tempfile.new('bike.csv')
       @dwh.export_table(@random_table_name, f)
 
       # should be the same except for order of the lines
-      imported = Set.new(CSV.read(path))
+      imported = Set.new(CSV.read(CSV_PATH))
       exported = Set.new(CSV.read(f))
 
       expect(exported).to eq imported
     end
 
     it 'fails for a wrong csv' do
-      path_wrong = 'spec/data/bike-wrong.csv'
-
       # create the table
-      @dwh.create_table_from_csv_header(@random_table_name, path_wrong)
+      @dwh.create_table_from_csv_header(@random_table_name, WRONG_CSV_PATH)
       expect(@dwh.table_exists?(@random_table_name)).to eq true
 
       # load the data there - expect fail
-      expect{@dwh.load_data_from_csv(@random_table_name, path_wrong)}.to raise_error(ArgumentError)
-
+      expect{@dwh.load_data_from_csv(@random_table_name, WRONG_CSV_PATH)}.to raise_error(ArgumentError)
     end
+  end
+
+  describe '#get_columns' do
+    it 'gives you the right list of columns' do
+      expected_cols = File.open(CSV_PATH, &:gets).strip.split(',')
+      @dwh.create_table_from_csv_header(@random_table_name, CSV_PATH)
+    end
+    # TODO more tests
   end
 end

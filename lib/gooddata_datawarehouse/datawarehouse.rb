@@ -52,25 +52,31 @@ module GoodData
 
     def csv_to_new_table(table_name, csv_path, opts={})
       cols = create_table_from_csv_header(table_name, csv_path, opts)
-      load_data_from_csv(table_name, csv_path, columns: cols)
+      load_data_from_csv(table_name, csv_path, opts.merge(columns: cols))
     end
 
     def load_data_from_csv(table_name, csv_path, opts={})
       columns = opts[:columns] || get_csv_headers(csv_path)
 
-      # temporary files to get the excepted records
-      exc = opts[:exceptions_file] ||= Tempfile.new('exceptions')
-      rej = opts[:rejections_file] ||= Tempfile.new('rejections')
-      exc = File.new(exc) unless exc.is_a?(File)
-      rej = File.new(rej) unless exc.is_a?(File)
+      if opts[:ignore_parse_errors] && opts[:exceptions_file].nil? && opts[:rejections_file].nil?
+        exc = nil
+        rej = nil
+      else
+        # temporary files to get the excepted records (if not given)
+        exc = opts[:exceptions_file] ||= Tempfile.new('exceptions')
+        rej = opts[:rejections_file] ||= Tempfile.new('rejections')
+        exc = File.new(exc) unless exc.is_a?(File)
+        rej = File.new(rej) unless rej.is_a?(File)
+      end
 
       # execute the load
       execute(GoodData::SQLGenerator.load_data(table_name, csv_path, columns, opts))
 
-      exc.close
-      rej.close
+      exc.close if exc
+      rej.close if rej
 
-      if exc.size > 0 || rej.size > 0
+      # if there was something rejected and it shouldn't be ignored, raise an error
+      if ((exc && File.size?(exc)) || (rej && File.size?(rej))) && (! opts[:ignore_parse_errors])
         fail ArgumentError, "Some lines in the CSV didn't go through. Exceptions: #{IO.read(exc)}\nRejected records: #{IO.read(rej)}"
       end
     end

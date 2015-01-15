@@ -25,7 +25,11 @@ module GoodData
         parser = opts[:parser] || 'GdcCsvParser()'
         escape_as = opts[:escape_as] || '"'
 
-        exc_rej = opts[:ignore_parse_errors] ? '' : "EXCEPTIONS '#{File.absolute_path(opts[:exceptions_file])}' REJECTED DATA '#{File.absolute_path(opts[:rejections_file])}'"
+        exc_rej = if opts[:ignore_parse_errors] && opts[:exceptions_file].nil? && opts[:rejections_file].nil?
+                    ''
+                  else
+                    "EXCEPTIONS '#{File.absolute_path(opts[:exceptions_file])}' REJECTED DATA '#{File.absolute_path(opts[:rejections_file])}'"
+                  end
 
         %Q{COPY #{table} (#{col_list})
         FROM LOCAL '#{File.absolute_path(csv)}' WITH PARSER #{parser}
