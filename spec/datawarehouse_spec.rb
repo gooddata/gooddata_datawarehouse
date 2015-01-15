@@ -172,6 +172,22 @@ describe GoodData::Datawarehouse do
       expected_cols = File.open(CSV_PATH, &:gets).strip.split(',')
       expect(Set.new(@dwh.get_columns(@random_table_name))).to eq Set.new(expected_cols.map {|c| {:column_name => c, :data_type => GoodData::SQLGenerator::DEFAULT_TYPE}})
     end
+
+    it "works with non-existing files" do
+      t = Tempfile.new('haha')
+      d = File.dirname(t)
+
+      rej = File.join(d, @random_table_name + '_rej')
+      exc = File.join(d, @random_table_name + '_exc')
+
+      expect(File.exists?(rej)).to be false
+      expect(File.exists?(exc)).to be false
+
+      @dwh.csv_to_new_table(@random_table_name, WRONG_CSV_PATH, :exceptions_file => exc, :rejections_file => rej, :ignore_parse_errors => true)
+
+      expect(File.size(rej)).to be > 0
+      expect(File.size(exc)).to be > 0
+    end
   end
 
   describe '#export_table' do

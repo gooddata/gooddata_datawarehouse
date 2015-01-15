@@ -65,8 +65,8 @@ module GoodData
         # temporary files to get the excepted records (if not given)
         exc = opts[:exceptions_file] ||= Tempfile.new('exceptions')
         rej = opts[:rejections_file] ||= Tempfile.new('rejections')
-        exc = File.new(exc) unless exc.is_a?(File)
-        rej = File.new(rej) unless rej.is_a?(File)
+        exc = File.new(exc, 'w') unless exc.is_a?(File)
+        rej = File.new(rej, 'w') unless rej.is_a?(File)
       end
 
       # execute the load
