@@ -123,6 +123,25 @@ describe GoodData::Datawarehouse do
       expect(File.size(exc)).to eq 0
     end
 
+    it 'overwrites the rejections and exceptions' do
+      rej = Tempfile.new('rejections.csv')
+      exc = Tempfile.new('exceptions.csv')
+
+      @dwh.csv_to_new_table(@random_table_name, WRONG_CSV_PATH, :exceptions_file => exc.path, :rejections_file => rej.path, :ignore_parse_errors => true)
+
+      rej_size = File.size(rej)
+      exc_size = File.size(exc)
+
+      expect(rej_size).to be > 0
+      expect(exc_size).to be > 0
+
+      # load it again and see if it was overwritten - has the same size
+      @dwh.load_data_from_csv(@random_table_name, WRONG_CSV_PATH, :exceptions_file => exc.path, :rejections_file => rej.path, :ignore_parse_errors => true)
+
+      expect(File.size(rej)).to eq rej_size
+      expect(File.size(exc)).to be exc_size
+    end
+
     it 'writes exceptions and rejections to files at given path, passed files' do
       rej = Tempfile.new('rejections.csv')
       exc = Tempfile.new('exceptions.csv')
