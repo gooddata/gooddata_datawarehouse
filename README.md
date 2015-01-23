@@ -44,6 +44,9 @@ require 'gooddata_datawarehouse'
 
 # connect
 dwh = GoodData::Datawarehouse.new('you@gooddata.com', 'yourpass', 'your ADS instance id')
+# instance id is the identifier of your datawarehouse (ADS). 
+# E.g. for datawarehouse https://secure.gooddata.com/gdc/datawarehouse/instances/d4979ac54df8afb7b5192b0086de6270
+# the instance id is d4979ac54df8afb7b5192b0086de6270
 
 # import a csv
 dwh.csv_to_new_table('my_table', 'path/to/my.csv')
@@ -51,7 +54,7 @@ dwh.csv_to_new_table('my_table', 'path/to/my.csv')
 dwh.table_exists?('my_table') # true
 dwh.get_columns('my_table') # [{column_name: 'col1', data_type: 'varchar(88)'}, {column_name: 'col2', data_type: 'int'}]
 
-# run an aribrary sql
+# run an arbitrary sql
 dwh.execute('ALTER TABLE my_table ADD COLUMN col3 INTEGER')
 
 # run a select and process results 
