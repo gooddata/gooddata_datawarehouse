@@ -72,6 +72,17 @@ dwh.export_table('my_new_table', 'path/to/my_new.csv')
 dwh.drop_table('my_new_table')
 ```
 
+## Troubleshooting
+### Wrong driver version
+If you get an error talking about handshake error and wrong DSS driver version, update your `gooddata-dss-jdbc` gem by running
+
+    $ bundle update
+
+or 
+
+    $ gem update gooddata-dss-jdbc
+
+You should always have the latest version of this gem.
 
 ## Contributing
 
