@@ -1,13 +1,18 @@
 require 'tempfile'
 require 'gooddata_datawarehouse/datawarehouse'
-require_relative 'spec_helper'
 
 CSV_PATH = 'spec/data/bike.csv'
 WRONG_CSV_PATH = 'spec/data/bike-wrong.csv'
 
+class Helper
+  def self.create_default_connection
+    GoodData::Datawarehouse.new(ENV['USERNAME'], ENV['PASSWORD'], ENV['INSTANCE_ID'])
+  end
+end
+
 describe GoodData::Datawarehouse do
   before(:each) do
-    @dwh = SpecHelper::create_default_connection
+    @dwh = Helper::create_default_connection
     @random = rand(10000000).to_s
     @random_table_name = "temp_#{@random}"
     @created_tables = nil
