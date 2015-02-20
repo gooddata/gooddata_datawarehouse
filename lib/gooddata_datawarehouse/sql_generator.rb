@@ -42,6 +42,10 @@ module GoodData
         "SELECT COUNT(*) FROM tables WHERE table_name = '#{table_name}'"
       end
 
+      def get_row_count(table_name)
+        "SELECT COUNT(*) FROM #{table_name}"
+      end
+
       def get_columns(table_name)
         "SELECT column_name, data_type FROM columns WHERE table_name = '#{table_name}'"
       end

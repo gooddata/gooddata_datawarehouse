@@ -50,35 +50,55 @@ module GoodData
       execute(GoodData::SQLGenerator.drop_table(table_name,opts))
     end
 
-    def csv_to_new_table(table_name, csv_path, opts={})
-      cols = create_table_from_csv_header(table_name, csv_path, opts)
-      load_data_from_csv(table_name, csv_path, opts.merge(columns: cols))
+    def csv_to_new_table(table_name, csvs, opts={})
+      csv_list = list_files(csvs)
+      cols = create_table_from_csv_header(table_name, csv_list[0], opts)
+      load_data_from_csv(table_name, csv_list, opts.merge(columns: cols))
     end
 
-    def load_data_from_csv(table_name, csv_path, opts={})
-      columns = opts[:columns] || get_csv_headers(csv_path)
+    def load_data_from_csv(table_name, csvs, opts={})
+      # get the list of files to load and columns in the csv
+      csv_list = list_files(csvs)
+      columns = opts[:columns] || get_csv_headers(csv_list[0])
 
-      if opts[:ignore_parse_errors] && opts[:exceptions_file].nil? && opts[:rejections_file].nil?
-        exc = nil
-        rej = nil
-      else
-        # temporary files to get the excepted records (if not given)
-        exc = opts[:exceptions_file] ||= Tempfile.new('exceptions')
-        rej = opts[:rejections_file] ||= Tempfile.new('rejections')
-        exc = File.new(exc, 'w') unless exc.is_a?(File)
-        rej = File.new(rej, 'w') unless rej.is_a?(File)
+      # load each csv from the list
+      single_file = (csv_list.size == 1)
+
+      csv_list.each do |csv_path|
+        if opts[:ignore_parse_errors] && opts[:exceptions_file].nil? && opts[:rejections_file].nil?
+          exc = nil
+          rej = nil
+          opts_file = opts
+        else
+          opts_file = opts.clone
+          # priradit do opts i do exc -
+          # temporary files to get the excepted records (if not given)
+          exc = opts_file[:exceptions_file] = init_file(opts_file[:exceptions_file], 'exceptions', csv_path, single_file)
+          rej = opts_file[:rejections_file] = init_file(opts_file[:rejections_file], 'rejections', csv_path, single_file)
+        end
+
+        # execute the load
+        execute(GoodData::SQLGenerator.load_data(table_name, csv_path, columns, opts_file))
+
+        exc.close if exc
+        rej.close if rej
+
+        # if there was something rejected and it shouldn't be ignored, raise an error
+        if ((exc && File.size?(exc)) || (rej && File.size?(rej))) && (! opts[:ignore_parse_errors])
+          fail ArgumentError, "Some lines in the CSV didn't go through. Exceptions: #{IO.read(exc)}\nRejected records: #{IO.read(rej)}"
+        end
       end
+    end
 
-      # execute the load
-      execute(GoodData::SQLGenerator.load_data(table_name, csv_path, columns, opts))
+    def init_file(given_filename, key, csv_path, single_file)
+      # only use file postfix if there are multiple files
+      postfix = single_file ? '' : "-#{File.basename(csv_path)}"
 
-      exc.close if exc
-      rej.close if rej
-
-      # if there was something rejected and it shouldn't be ignored, raise an error
-      if ((exc && File.size?(exc)) || (rej && File.size?(rej))) && (! opts[:ignore_parse_errors])
-        fail ArgumentError, "Some lines in the CSV didn't go through. Exceptions: #{IO.read(exc)}\nRejected records: #{IO.read(rej)}"
-      end
+      # take what we have and put the source csv name at the end
+      given_filename = given_filename.path if given_filename.is_a?(File)
+      f = "#{given_filename || Tempfile.new(key).path}#{postfix}"
+      f = File.new(f, 'w') unless f.is_a?(File)
+      f
     end
 
     # returns a list of columns created
@@ -97,6 +117,10 @@ module GoodData
     def table_exists?(name)
       count = execute_select(GoodData::SQLGenerator.get_table_count(name), :count => true)
       count > 0
+    end
+
+    def table_row_count(table_name)
+      execute_select(GoodData::SQLGenerator.get_row_count(table_name), :count => true)
     end
 
     def get_columns(table_name)
@@ -157,6 +181,26 @@ module GoodData
     end
 
     private
+
+    # returns an array of file paths (strings)
+    def list_files(csvs)
+      # csvs can be:
+      case csvs
+        when String
+
+          # directory
+          if File.directory?(csvs)
+            return (Dir.entries(csvs) - ['.', '..']).map{|f| File.join(csvs, f)}
+          end
+
+          # filename or pattern
+          return Dir.glob(csvs)
+
+        # array
+        when Array
+          return csvs
+      end
+    end
 
     def get_csv_headers(csv_path)
       header_str = File.open(csv_path, &:gets)
