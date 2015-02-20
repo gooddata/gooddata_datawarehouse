@@ -30,4 +30,5 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency "sequel", "~> 4.17"
   spec.add_dependency "gooddata-dss-jdbc", "~> 0.1"
+  spec.add_dependency "pmap", "~> 1.0"
 end

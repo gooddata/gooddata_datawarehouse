@@ -3,11 +3,13 @@ require 'sequel'
 require 'logger'
 require 'csv'
 require 'tempfile'
+require 'pmap'
 
 require_relative 'sql_generator'
 
 module GoodData
   class Datawarehouse
+    PARALEL_COPY_THREAD_COUNT = 5
     def initialize(username, password, instance_id, opts={})
       @logger = Logger.new(STDOUT)
       @username = username
@@ -64,7 +66,7 @@ module GoodData
       # load each csv from the list
       single_file = (csv_list.size == 1)
 
-      csv_list.each do |csv_path|
+      csv_list.peach(PARALEL_COPY_THREAD_COUNT) do |csv_path|
         if opts[:ignore_parse_errors] && opts[:exceptions_file].nil? && opts[:rejections_file].nil?
           exc = nil
           rej = nil
