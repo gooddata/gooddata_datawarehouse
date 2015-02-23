@@ -51,7 +51,13 @@ dwh = GoodData::Datawarehouse.new('you@gooddata.com', 'yourpass', 'your ADS inst
 # import a csv
 dwh.csv_to_new_table('my_table', 'path/to/my.csv')
 
+# or multiple csvs (running in parallel threads)
+dwh.csv_to_new_table('my_table', ['path/to/my.csv', 'path/to/my2.csv'])
+dwh.csv_to_new_table('my_table', 'path/to/*.csv')
+dwh.csv_to_new_table('my_table', 'path/to/directory/')
+
 dwh.table_exists?('my_table') # true
+dwh.table_row_count('my_table') # 55
 dwh.get_columns('my_table') # [{column_name: 'col1', data_type: 'varchar(88)'}, {column_name: 'col2', data_type: 'int'}]
 
 # run an arbitrary sql
