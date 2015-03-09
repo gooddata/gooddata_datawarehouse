@@ -9,7 +9,7 @@ require_relative 'sql_generator'
 
 module GoodData
   class Datawarehouse
-    PARALEL_COPY_THREAD_COUNT = 5
+    PARALEL_COPY_THREAD_COUNT = 10
     def initialize(username, password, instance_id, opts={})
       @logger = Logger.new(STDOUT)
       @username = username
@@ -42,6 +42,8 @@ module GoodData
           csv << row.values_at(*col_keys)
         end
       end
+      @logger.info "Table #{table_name} exported to #{csv_path.respond_to?(:path)? csv_path.path : csv_path}"
+      csv_path
     end
 
     def rename_table(old_name, new_name)
@@ -55,18 +57,27 @@ module GoodData
     def csv_to_new_table(table_name, csvs, opts={})
       csv_list = list_files(csvs)
       cols = create_table_from_csv_header(table_name, csv_list[0], opts)
-      load_data_from_csv(table_name, csv_list, opts.merge(columns: cols))
+      load_data_from_csv(table_name, csv_list, opts.merge(columns: cols, append: true))
+    end
+
+    def truncate_table(table_name)
+      execute(GoodData::SQLGenerator.truncate_table(table_name))
     end
 
     def load_data_from_csv(table_name, csvs, opts={})
+      thread_count = opts[:paralel_copy_thread_count] || PARALEL_COPY_THREAD_COUNT
       # get the list of files to load and columns in the csv
       csv_list = list_files(csvs)
       columns = opts[:columns] || get_csv_headers(csv_list[0])
 
+      # truncate_table unless data should be appended
+      unless opts[:append]
+        truncate_table(table_name)
+      end
+
       # load each csv from the list
       single_file = (csv_list.size == 1)
-
-      csv_list.peach(PARALEL_COPY_THREAD_COUNT) do |csv_path|
+      csv_list.peach(thread_count) do |csv_path|
         if opts[:ignore_parse_errors] && opts[:exceptions_file].nil? && opts[:rejections_file].nil?
           exc = nil
           rej = nil
@@ -209,7 +220,15 @@ module GoodData
       if header_str.nil? || header_str.empty?
         return []
       end
-      header_str.split(',').map{ |s| s.gsub(/[\s"-]/,'') }
+      empty_count = 0
+      header_str.split(',').map{|s| s.gsub(/[\s"-]/,'')}.map do |c|
+        if c.nil? || c.empty?
+          empty_count += 1
+          "empty#{empty_count}"
+        else
+          c
+        end
+      end
     end
   end
 end

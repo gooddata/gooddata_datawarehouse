@@ -54,6 +54,10 @@ module GoodData
         limit = opts[:limit] ? "LIMIT #{opts[:limit]}" : ''
         "SELECT * FROM #{table_name} #{limit}"
       end
+
+      def truncate_table(table_name)
+        "TRUNCATE TABLE #{table_name}"
+      end
     end
   end
 end

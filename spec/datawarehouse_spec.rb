@@ -4,6 +4,7 @@ require 'gooddata_datawarehouse/datawarehouse'
 CSV_PATH = 'spec/data/bike.csv'
 CSV_PATH2 = 'spec/data/bike2.csv'
 WRONG_CSV_PATH = 'spec/data/wrong-bike.csv'
+EMPTY_HEADER_CSV_PATH = 'spec/data/emptyheader-bike.csv'
 CSV_REGEXP = 'spec/data/bike*.csv'
 
 class Helper
@@ -107,9 +108,10 @@ describe GoodData::Datawarehouse do
     expect(@dwh.table_exists?(@random_table_name)).to eq true
   end
 
-  def check_row_count
+  def check_row_count(files=[CSV_PATH, CSV_PATH2])
+    expected_count = files.map {|f| Helper.line_count(f)}.reduce(:+)
     # there are lines from both of the csvs
-    expect(@dwh.table_row_count(@random_table_name)).to eq Helper.line_count(CSV_PATH) + Helper.line_count(CSV_PATH2)
+    expect(@dwh.table_row_count(@random_table_name)).to eq expected_count
   end
 
   describe '#rename_table' do
@@ -141,13 +143,13 @@ describe GoodData::Datawarehouse do
     end
 
 
-    it "loads all files in a directory" do
+    it "loads all files in a directory, in paralel" do
       # make a tempdir and copy the csvs there
       Dir.mktmpdir('foo') do |dir|
         FileUtils.cp(CSV_PATH, dir)
         FileUtils.cp(CSV_PATH2, dir)
 
-        @dwh.csv_to_new_table(@random_table_name, dir)
+        @dwh.csv_to_new_table(@random_table_name, dir, :paralel_copy_thread_count => 2)
       end
 
       check_table_exists
@@ -279,6 +281,11 @@ describe GoodData::Datawarehouse do
       expect(File.size("#{rej.path}-#{File.basename(WRONG_CSV_PATH)}")).to be > 0
       expect(File.size("#{exc.path}-#{File.basename(WRONG_CSV_PATH)}")).to be > 0
     end
+    it "creates empty1, etc. columns for empty header columns" do
+      @dwh.csv_to_new_table(@random_table_name, EMPTY_HEADER_CSV_PATH)
+      # it should have cols empty1,2
+      expect(@dwh.get_columns(@random_table_name).map {|c| c[:column_name]}).to include('empty1', 'empty2')
+    end
   end
 
   describe '#export_table' do
@@ -342,6 +349,42 @@ describe GoodData::Datawarehouse do
 
       # load the data there - expect fail
       expect{@dwh.load_data_from_csv(@random_table_name, WRONG_CSV_PATH)}.to raise_error(ArgumentError)
+    end
+
+    it 'truncates the data that is already there' do
+      @dwh.create_table_from_csv_header(@random_table_name, CSV_PATH)
+      check_table_exists
+      check_cols
+
+      # load the data there
+      @dwh.load_data_from_csv(@random_table_name, CSV_PATH)
+      check_row_count([CSV_PATH])
+
+      # load the data there again, count should stay
+      @dwh.load_data_from_csv(@random_table_name, CSV_PATH2)
+      check_row_count([CSV_PATH2])
+    end
+
+    it "keeps the data that is there if append option passed" do
+      @dwh.create_table_from_csv_header(@random_table_name, CSV_PATH)
+      check_table_exists
+      check_cols
+
+      # load the data there
+      @dwh.load_data_from_csv(@random_table_name, CSV_PATH)
+      check_row_count([CSV_PATH])
+
+      # append the data
+      @dwh.load_data_from_csv(@random_table_name, CSV_PATH2, :append => true)
+      check_row_count([CSV_PATH, CSV_PATH2])
+    end
+  end
+
+  describe "#truncate_table" do
+    it "truncates the given table" do
+      @dwh.csv_to_new_table(@random_table_name, CSV_PATH)
+      @dwh.truncate_table(@random_table_name)
+      expect(@dwh.table_row_count(@random_table_name)).to eq 0
     end
   end
 
