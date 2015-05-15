@@ -47,6 +47,8 @@ dwh = GoodData::Datawarehouse.new('you@gooddata.com', 'yourpass', 'your ADS inst
 # instance id is the identifier of your datawarehouse (ADS). 
 # E.g. for datawarehouse https://secure.gooddata.com/gdc/datawarehouse/instances/d4979ac54df8afb7b5192b0086de6270
 # the instance id is d4979ac54df8afb7b5192b0086de6270
+# for custom jdbc url do:
+# dwh = GoodData::Datawarehouse.new('you@gooddata.com', 'yourpass', nil, 'jdbc:dss://whatever.com/something')
 
 # import a csv
 dwh.csv_to_new_table('my_table', 'path/to/my.csv')

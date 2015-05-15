@@ -14,9 +14,13 @@ module GoodData
       @logger = Logger.new(STDOUT)
       @username = username
       @password = password
-      @jdbc_url = "jdbc:dss://secure.gooddata.com/gdc/dss/instances/#{instance_id}"
-      if @username.nil? || @password.nil? || instance_id.nil?
-        fail ArgumentError, "username, password and/or instance_id are nil. All of them are mandatory."
+      @jdbc_url = opts[:jdbc_url] || "jdbc:dss://secure.gooddata.com/gdc/dss/instances/#{instance_id}"
+      if @username.nil? || @password.nil?
+        fail ArgumentError, "username and/or password are nil. All of them are mandatory."
+      end
+
+      if instance_id.nil? && opts[:jdbc_url].nil?
+        fail ArgumentError, "you must either provide instance_id or jdbc_url option."
       end
 
       Jdbc::DSS.load_driver
