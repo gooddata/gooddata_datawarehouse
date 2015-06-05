@@ -14,7 +14,7 @@ module GoodData
       @logger = Logger.new(STDOUT)
       @username = username
       @password = password
-      @jdbc_url = opts[:jdbc_url] || "jdbc:dss://secure.gooddata.com/gdc/dss/instances/#{instance_id}"
+      @jdbc_url = opts[:jdbc_url] || "jdbc:gdc:datawarehouse://secure.gooddata.com/gdc/datawarehouse/instances/#{instance_id}"
       if @username.nil? || @password.nil?
         fail ArgumentError, "username and/or password are nil. All of them are mandatory."
       end
