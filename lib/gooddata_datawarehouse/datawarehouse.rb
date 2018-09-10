@@ -81,28 +81,30 @@ module GoodData
 
       # load each csv from the list
       single_file = (csv_list.size == 1)
-      csv_list.peach(thread_count) do |csv_path|
-        if opts[:ignore_parse_errors] && opts[:exceptions_file].nil? && opts[:rejections_file].nil?
-          exc = nil
-          rej = nil
-          opts_file = opts
-        else
-          opts_file = opts.clone
-          # priradit do opts i do exc -
-          # temporary files to get the excepted records (if not given)
-          exc = opts_file[:exceptions_file] = init_file(opts_file[:exceptions_file], 'exceptions', csv_path, single_file)
-          rej = opts_file[:rejections_file] = init_file(opts_file[:rejections_file], 'rejections', csv_path, single_file)
-        end
+      csv_list.each do |csv_path|
+        begin
+          if opts[:ignore_parse_errors] && opts[:exceptions_file].nil? && opts[:rejections_file].nil?
+            exc = nil
+            rej = nil
+            opts_file = opts
+          else
+            opts_file = opts.clone
+            # priradit do opts i do exc -
+            # temporary files to get the excepted records (if not given)
+            exc = opts_file[:exceptions_file] = init_file(opts_file[:exceptions_file], 'exceptions', csv_path, single_file)
+            rej = opts_file[:rejections_file] = init_file(opts_file[:rejections_file], 'rejections', csv_path, single_file)
+          end
 
-        # execute the load
-        execute(GoodData::SQLGenerator.load_data(table_name, csv_path, columns, opts_file))
+          # execute the load
+          execute(GoodData::SQLGenerator.load_data(table_name, csv_path, columns, opts_file))
 
-        exc.close if exc
-        rej.close if rej
-
-        # if there was something rejected and it shouldn't be ignored, raise an error
-        if ((exc && File.size?(exc)) || (rej && File.size?(rej))) && (! opts[:ignore_parse_errors])
-          fail ArgumentError, "Some lines in the CSV didn't go through. Exceptions: #{IO.read(exc)}\nRejected records: #{IO.read(rej)}"
+          # if there was something rejected and it shouldn't be ignored, raise an error
+          if ((exc && File.size?(exc)) || (rej && File.size?(rej))) && (! opts[:ignore_parse_errors])
+            fail ArgumentError, "Some lines in the CSV didn't go through. Exceptions: #{IO.read(exc)}\nRejected records: #{IO.read(rej)}"
+          end
+        ensure
+          exc.close if exc
+          rej.close if rej
         end
       end
     end
