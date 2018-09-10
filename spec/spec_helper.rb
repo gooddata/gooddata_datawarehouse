@@ -6,3 +6,6 @@ RSpec.configure do |c|
   c.run_all_when_everything_filtered = true
 end
 
+
+puts '>>>>>' * 10
+puts ENV.inspect
