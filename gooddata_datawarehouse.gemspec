@@ -29,6 +29,6 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'coveralls', '~> 0.7', '>= 0.7.0'
 
   spec.add_dependency "sequel", "~> 4.17"
-  spec.add_dependency "gooddata-dss-jdbc", "~> 0.2"
+  spec.add_dependency "gooddata-dss-jdbc", "~> 0.2.4"
   spec.add_dependency "pmap", "~> 1.0"
 end
