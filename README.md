@@ -50,6 +50,12 @@ dwh = GoodData::Datawarehouse.new('you@gooddata.com', 'yourpass', 'your ADS inst
 # for custom jdbc url do:
 # dwh = GoodData::Datawarehouse.new('you@gooddata.com', 'yourpass', nil, :jdbc_url => 'jdbc:dss://whatever.com/something')
 
+# connect with SST (available from version 0.0.10)
+# dwh = GoodData::Datawarehouse.new_instance(:instance_id => 'your ADS instance id', :sst => 'SST token')
+# for custom jdbc url do:
+# dwh = GoodData::Datawarehouse.new_instance(:jdbc_url => 'jdbc:dss://whatever.com/something', :sst => 'SST token')
+ 
+
 # import a csv
 dwh.csv_to_new_table('my_table', 'path/to/my.csv')
 

@@ -10,14 +10,17 @@ require_relative 'sql_generator'
 module GoodData
   class Datawarehouse
     PARALEL_COPY_THREAD_COUNT = 10
+
+    def self.new_instance(opts={})
+      self.new(opts[:username], opts[:password], opts[:instance_id], opts)
+    end
+
     def initialize(username, password, instance_id, opts={})
       @logger = Logger.new(STDOUT)
       @username = username
       @password = password
+      @sst_token = opts[:sst]
       @jdbc_url = opts[:jdbc_url] || "jdbc:gdc:datawarehouse://secure.gooddata.com/gdc/datawarehouse/instances/#{instance_id}"
-      if @username.nil? || @password.nil?
-        fail ArgumentError, "username and/or password are nil. All of them are mandatory."
-      end
 
       if instance_id.nil? && opts[:jdbc_url].nil?
         fail ArgumentError, "you must either provide instance_id or jdbc_url option."
@@ -192,11 +195,15 @@ module GoodData
     end
 
     def connect
-      Sequel.connect @jdbc_url,
-        :username => @username,
-        :password => @password do |connection|
-          yield(connection)
+      if @username.to_s.empty? || @password.to_s.empty?
+        @connection = Sequel.connect(@jdbc_url, :driver => Java.com.gooddata.dss.jdbc.driver.DssDriver, :jdbc_properties => {'sst' => @sst_token})
+      else
+        @connection = Sequel.connect(@jdbc_url, :username => @username, :password => @password)
       end
+      yield(@connection)
+    ensure
+      @connection.disconnect unless @connection.nil?
+      Sequel.synchronize{::Sequel::DATABASES.delete(@connection)}
     end
 
     private
