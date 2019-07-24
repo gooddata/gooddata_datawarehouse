@@ -7,10 +7,17 @@ WRONG_CSV_PATH = 'spec/data/wrong-bike.csv'
 EMPTY_HEADER_CSV_PATH = 'spec/data/emptyheader-bike.csv'
 CSV_REGEXP = 'spec/data/bike*.csv'
 
+SST_TOKEN = ENV['GDC_SST']
+
 class Helper
   def self.create_default_connection
     GoodData::Datawarehouse.new(ENV['USERNAME'], ENV['PASSWORD'], ENV['INSTANCE_ID'])
   end
+
+  def self.create_connection_with_sst
+    GoodData::Datawarehouse.new_instance(:jdbc_url => ENV['JDBC_URL'], :sst => SST_TOKEN)
+  end
+
   def self.line_count(f)
     i = 0
     CSV.foreach(f, :headers => true) {|_| i += 1}
@@ -21,13 +28,23 @@ end
 describe GoodData::Datawarehouse do
   describe "dwh instance creation" do
     it "creates an instance with custom jdbc url" do
-      dwh = GoodData::Datawarehouse.new(ENV['USERNAME'], ENV['PASSWORD'], nil, :jdbc_url => "jdbc:dss://secure.gooddata.com/gdc/dss/instances/#{ENV['INSTANCE_ID']}")
-      expect(dwh.table_exists?('hahahaha')).to eq false
+      if SST_TOKEN.to_s.empty?
+        dwh = GoodData::Datawarehouse.new(ENV['USERNAME'], ENV['PASSWORD'], nil, :jdbc_url => "jdbc:dss://secure.gooddata.com/gdc/dss/instances/#{ENV['INSTANCE_ID']}")
+        expect(dwh.table_exists?('hahahaha')).to eq false
+      else
+        dwh = Helper::create_connection_with_sst
+        expect(dwh.table_exists?('hahahaha')).to eq false
+      end
     end
   end
+
   describe 'Table operations' do
     before(:each) do
-      @dwh = Helper::create_default_connection
+      if SST_TOKEN.to_s.empty?
+        @dwh = Helper::create_default_connection
+      else
+        @dwh = Helper::create_connection_with_sst
+      end
       @random = rand(10000000).to_s
       @random_table_name = "temp_#{@random}"
       @created_tables = nil
